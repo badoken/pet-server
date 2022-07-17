@@ -7,11 +7,11 @@ edition = "2021"
 
 [[bin]]
 name = "pet-server"
-path="src/main.rs"
+path = "src/main.rs"
 
 [lib]
 name = "app"
-path="src/app.rs"
+path = "src/app.rs"
 
 [dependencies]
 # Async
@@ -22,14 +22,14 @@ log = "0.4.17"
 log4rs = "1.1.1"
 
 # Web
-rocket = "0.5.0-rc.2"
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
 
 # DB
 sea-query = "0.24.6"
 sea-query-attr = "0.1.1"
 
 # Data
-uuid = { version = "1.1.1", features = ["v4"] }
+uuid = { version = "1.1.1", features = ["v4", "serde"] }
 serde_json = "1.0.81"
 serde = { version = "1.0.137", features = ["derive"] }
 

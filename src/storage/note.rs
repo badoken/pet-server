@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use sea_query::Query;
 use uuid::Uuid;
-use crate::core::note::{Note, NoteId, NoteRepo};
+use crate::core::note::{Note, NoteId};
 
 pub struct NoteRecord {
     pub id: Uuid,
@@ -18,32 +18,30 @@ enum NoteIden {
     Content,
 }
 
-pub struct NoteStorage {
+pub struct NoteRepo {
     storage: HashMap<NoteId, Note>,
 }
 
-impl NoteStorage {
-    pub fn new() -> NoteStorage {
-        NoteStorage { storage: HashMap::new() }
+impl NoteRepo {
+    pub fn new() -> NoteRepo {
+        NoteRepo { storage: HashMap::new() }
     }
-}
 
-impl NoteRepo for NoteStorage {
-    fn add(&mut self, note: Note) {
+    pub fn add(&mut self, note: Note) {
         let id = note.id.clone();
         self.storage.insert(id, note);
     }
 
-    fn update(&mut self, note: Note) {
+    pub fn update(&mut self, note: Note) {
         todo!()
     }
 
-    fn find_all(&mut self) -> Vec<Note> {
-        todo!()
+    pub fn find_all(&self) -> Vec<Note> {
+        self.storage.values().cloned().collect()
     }
 
-    fn find_by_id(&mut self, id: NoteId) -> Option<Note> {
-        todo!()
+    pub fn find_by_id(&self, id: &NoteId) -> Option<Note> {
+        self.storage.get(id).cloned()
     }
 }
 
