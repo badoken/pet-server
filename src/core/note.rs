@@ -14,10 +14,10 @@ pub struct NoteId(pub Uuid);
 impl Eq for NoteId {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialOrd, PartialEq, Hash)]
-pub struct NoteName(String);
+pub struct NoteName(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialOrd, PartialEq, Hash)]
-pub struct NoteContent(String);
+pub struct NoteContent(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialOrd, PartialEq, Hash)]
 pub struct Note {

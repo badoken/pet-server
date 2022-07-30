@@ -5,6 +5,7 @@ use rocket::response::Redirect;
 use rocket::{Data, Request, Response, State};
 use rocket::http::Status;
 use rocket::outcome::Outcome::{Failure, Success};
+use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 use serde_json::{Value};
 use tokio::fs::read_to_string;
@@ -13,20 +14,27 @@ use crate::core::note::{AppState, Note, NoteId};
 
 
 #[get("/note/<note_id>")]
-pub async fn get_by_id(note_id: NoteId, state: &State<AppState>) -> Option<Json<Note>> {
-    state.note_repo.lock().await.find_by_id(&note_id)
-        .map(|n| Json(n))
+pub async fn get_by_id(note_id: NoteId, state: &State<AppState>) -> Result<Json<Note>, (Status, String)> {
+    match state.note_repo.lock().await.find_by_id(&note_id).await {
+        Ok(Some(note)) => Ok(Json(note)),
+        Ok(None) => Err((Status::NotFound, "Not found".to_string())),
+        Err(e) => Err((Status::InternalServerError, e))
+    }
 }
 
 #[get("/notes")]
-pub async fn get_all(state: &State<AppState>) -> Json<Vec<Note>> {
-    Json(state.note_repo.lock().await.find_all())
+pub async fn get_all(state: &State<AppState>) -> Result<Json<Vec<Note>>, String> {
+    state.note_repo.lock().await
+        .find_all().await
+        .map(|notes| Json(notes))
 }
 
 #[post("/note", data = "<note>")]
-pub async fn post(note: Note, state: &State<AppState>) -> Json<()> {
-    state.note_repo.lock().await.add(note);
-    Json(())
+pub async fn post(note: Note, state: &State<AppState>) -> Result<Json<()>, String> {
+    state.note_repo.lock().await
+        .add(note)
+        .await
+        .map(|_| Json(()))
 }
 
 impl<'r> FromParam<'r> for NoteId {

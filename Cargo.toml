@@ -25,6 +25,8 @@ log4rs = "1.1.1"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 
 # DB
+tokio-postgres = { version = "0.7.6", features = ["with-uuid-1"] }
+refinery = { version = "0.8.5", features = ["tokio-postgres"] }
 sea-query = "0.24.6"
 sea-query-attr = "0.1.1"
 
@@ -37,3 +39,4 @@ serde = { version = "1.0.137", features = ["derive"] }
 [dev-dependencies]
 isahc = "1.7.2"
 lazy_static = "1.4.0"
+testcontainers = "0.14.0"

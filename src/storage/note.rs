@@ -1,7 +1,19 @@
 use std::collections::HashMap;
-use sea_query::Query;
+use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
+
+use rocket::form::validate::Len;
+use rocket::futures::StreamExt;
+use rocket::http::ext::IntoCollection;
+use sea_query::{Expr, PostgresQueryBuilder, Query};
+use tokio_postgres::{Error, Row};
 use uuid::Uuid;
-use crate::core::note::{Note, NoteId};
+
+use db::Database;
+
+use crate::core::note::{NoteContent, NoteId, NoteName};
+use crate::storage::db;
+
+type CoreNote = crate::core::note::Note;
 
 pub struct NoteRecord {
     pub id: Uuid,
@@ -11,7 +23,7 @@ pub struct NoteRecord {
 
 
 #[derive(sea_query::Iden)]
-enum NoteIden {
+enum Note {
     Table,
     Id,
     Name,
@@ -19,44 +31,65 @@ enum NoteIden {
 }
 
 pub struct NoteRepo {
-    storage: HashMap<NoteId, Note>,
+    db: Database,
 }
 
 impl NoteRepo {
-    pub fn new() -> NoteRepo {
-        NoteRepo { storage: HashMap::new() }
+    pub async fn new(db: Database) -> NoteRepo {
+        NoteRepo { db }
     }
 
-    pub fn add(&mut self, note: Note) {
-        let id = note.id.clone();
-        self.storage.insert(id, note);
+    pub async fn add(&mut self, note: CoreNote) -> Result<(), String> {
+        let statement = Query::insert()
+            .into_table(Note::Table)
+            .columns([Note::Id, Note::Name, Note::Content])
+            .values(vec![note.id.0.to_string().into(), note.name.0.into(), note.content.0.into()])
+            .map(|s| s.to_owned())
+            .map(|s| s.to_string(PostgresQueryBuilder))
+            .map_err(|e| e.to_string())?;
+
+        self.db.insert(statement).await
     }
 
-    pub fn update(&mut self, note: Note) {
+    pub fn update(&mut self, note: CoreNote) {
         todo!()
     }
 
-    pub fn find_all(&self) -> Vec<Note> {
-        self.storage.values().cloned().collect()
+    pub async fn find_all(&self) -> Result<Vec<CoreNote>, String> {
+        let statement = Query::select()
+            .columns([Note::Id, Note::Name, Note::Content])
+            .from(Note::Table)
+            .to_owned()
+            .to_string(PostgresQueryBuilder);
+        self.db.select(statement, |r| NoteRepo::note_from_row(r)).await
     }
 
-    pub fn find_by_id(&self, id: &NoteId) -> Option<Note> {
-        self.storage.get(id).cloned()
+
+    fn note_from_row(row: &Row) -> CoreNote { // FIXME
+        CoreNote {
+            id: NoteId(row.get(0)),
+            name: NoteName(row.get(1)),
+            content: NoteContent(row.get(2)),
+        }
+    }
+
+    pub async fn find_by_id(&self, id: &NoteId) -> Result<Option<CoreNote>, String> {
+        let statement = Query::select()
+            .from(Note::Table)
+            .columns([Note::Id, Note::Name, Note::Content])
+            .and_where(Expr::col(Note::Id).eq(id.0.to_string()))
+            .to_owned()
+            .to_string(PostgresQueryBuilder);
+        let notes = self.db.select(statement, |r| NoteRepo::note_from_row(r)).await;
+
+        match notes {
+            Ok(notes) =>
+                match &notes[..] {
+                    [note] => Ok(Some(note.to_owned())),
+                    [] => Ok(None),
+                    _ => Err("Found more than one".to_string()),
+                },
+            Err(e) => Err(e)
+        }
     }
 }
-
-fn store_record(record: NoteRecord) -> Result<Uuid, ()> {
-    // Query::insert()
-    //     .into_table(NoteIden::Table)
-    //     .columns([NoteIden::Id, NoteIden::Name, NoteIden::Content])
-    //     .values(vec![record.id, record.name, record.content])
-    return todo!();
-}
-
-
-fn find_record(id: Uuid) -> Option<NoteRecord> {
-    todo!();
-    // return Query::select()
-    //     .columns("id")
-}
-
