@@ -1,14 +1,9 @@
-use std::io::{Cursor, Error};
 use rocket::data::{FromData, Outcome, ToByteUnit};
 use rocket::request::FromParam;
-use rocket::response::Redirect;
-use rocket::{Data, Request, Response, State};
+use rocket::{Data, Request, State};
 use rocket::http::Status;
 use rocket::outcome::Outcome::{Failure, Success};
-use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
-use serde_json::{Value};
-use tokio::fs::read_to_string;
 use uuid::Uuid;
 use crate::core::note::{AppState, Note, NoteId};
 

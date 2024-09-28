@@ -1,11 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
-use std::fmt::format;
-use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
 use std::sync::Arc;
-use std::thread::sleep;
-use std::time::Duration;
 
 pub mod core;
 pub mod web;
@@ -13,14 +9,11 @@ pub mod storage;
 
 use web::*;
 
-use rocket::futures::TryFutureExt;
-
-use log::{error, info, warn};
 use log4rs;
 use log::LevelFilter;
 use log4rs::append::console::ConsoleAppender;
-use log4rs::config::{Appender, Logger, Root};
-use rocket::{Config, Error, Ignite, Rocket, State};
+use log4rs::config::{Appender, Root};
+use rocket::{Config, Error, Ignite, Rocket};
 use rocket::response::Redirect;
 use rocket::serde::json::Json;
 use tokio::sync::Mutex;
@@ -38,7 +31,7 @@ pub async fn run(conf: AppConfig) -> Result<Rocket<Ignite>, Error> {
 
     let rocket_config = Config { port: conf.port, ..Config::default() };
     let database = Database::new(&conf.db).await;
-    // database.migrate_db().await;
+
 
     rocket::build()
         .manage(AppState { note_repo: Arc::new(Mutex::new(NoteRepo::new(database).await)) })
@@ -52,7 +45,7 @@ pub async fn run(conf: AppConfig) -> Result<Rocket<Ignite>, Error> {
 pub fn index() -> Redirect { Redirect::to(uri!(note::get_all)) }
 
 #[get("/health")]
-pub fn health(state: &State<AppState>) -> Json<()> { Json(()) }
+pub fn health() -> Json<()> { Json(()) }
 
 
 fn configure_logging() {

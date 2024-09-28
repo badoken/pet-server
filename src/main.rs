@@ -1,5 +1,4 @@
-use std::error::Error;
-use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddrV4};
 use app::AppConfig;
 use app::storage::db::DbConfig;
 

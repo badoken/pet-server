@@ -1,11 +1,5 @@
-use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
-
-use rocket::form::validate::Len;
-use rocket::futures::StreamExt;
-use rocket::http::ext::IntoCollection;
 use sea_query::{Expr, PostgresQueryBuilder, Query};
-use tokio_postgres::{Error, Row};
+use tokio_postgres::{Row};
 use uuid::Uuid;
 
 use db::Database;
@@ -51,7 +45,7 @@ impl NoteRepo {
         self.db.insert(statement).await
     }
 
-    pub fn update(&mut self, note: CoreNote) {
+    pub fn update(&mut self, _note: CoreNote) {
         todo!()
     }
 
@@ -59,8 +53,7 @@ impl NoteRepo {
         let statement = Query::select()
             .columns([Note::Id, Note::Name, Note::Content])
             .from(Note::Table)
-            .to_owned()
-            .to_string(PostgresQueryBuilder);
+            .to_owned();
         self.db.select(statement, |r| NoteRepo::note_from_row(r)).await
     }
 
@@ -78,8 +71,7 @@ impl NoteRepo {
             .from(Note::Table)
             .columns([Note::Id, Note::Name, Note::Content])
             .and_where(Expr::col(Note::Id).eq(id.0.to_string()))
-            .to_owned()
-            .to_string(PostgresQueryBuilder);
+            .to_owned();
         let notes = self.db.select(statement, |r| NoteRepo::note_from_row(r)).await;
 
         match notes {

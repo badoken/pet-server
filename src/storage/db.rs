@@ -1,15 +1,9 @@
-use std::borrow::BorrowMut;
 use std::net::SocketAddrV4;
-use std::ops::DerefMut;
-use std::os::linux::raw::stat;
 use std::sync::Arc;
-use std::time::Duration;
-use rocket::futures::StreamExt;
-use rocket::http::ext::IntoCollection;
 use sea_query::{PostgresQueryBuilder, SelectStatement};
 use tokio::spawn;
 use tokio::sync::Mutex;
-use tokio_postgres::{Client, Error, NoTls, Row};
+use tokio_postgres::{Client, NoTls, Row};
 
 pub struct DbConfig {
     pub address: SocketAddrV4,
@@ -39,12 +33,12 @@ impl Database {
         Database { client: Arc::new(Mutex::new(client)) }
     }
 
-    pub async fn select<F, T>(&self, statement: String, mapping: F) -> Result<Vec<T>, String>
+    pub async fn select<F, T>(&self, statement: SelectStatement, mapping: F) -> Result<Vec<T>, String>
         where F: Fn(&Row) -> T,
               T: Clone {
         // let raw_query = statement.to_string(PostgresQueryBuilder); // FIXME
         let client = self.client.lock().await;
-        let result = client.query(statement.as_str(), &[]).await;
+        let result = client.query(statement.to_string(PostgresQueryBuilder).as_str(), &[]).await;
         match result {
             Err(e) => Err(e.to_string()),
             Ok(rows) => Ok(rows.iter().map(|r| mapping(&r)).collect())
