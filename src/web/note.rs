@@ -2,7 +2,7 @@ use rocket::data::{FromData, Outcome, ToByteUnit};
 use rocket::request::FromParam;
 use rocket::{Data, Request, State};
 use rocket::http::Status;
-use rocket::outcome::Outcome::{Failure, Success};
+use rocket::outcome::Outcome::{Error, Success};
 use rocket::serde::json::Json;
 use uuid::Uuid;
 use crate::core::note::{AppState, Note, NoteId};
@@ -47,11 +47,11 @@ impl<'r> FromData<'r> for Note {
     async fn from_data(_req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
         let maybe_string = data.open(256.bytes()).into_string().await;
         match maybe_string {
-            Err(e) => Failure((Status::UnprocessableEntity, e.to_string())),
+            Err(e) => Error((Status::UnprocessableEntity, e.to_string())),
             Ok(string) =>
                 serde_json::from_str(string.as_str())
                     .map(|n| Success(n))
-                    .unwrap_or_else(|e| Failure((Status::UnprocessableEntity, e.to_string())))
+                    .unwrap_or_else(|e| Error((Status::UnprocessableEntity, e.to_string())))
         }
     }
 }

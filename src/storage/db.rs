@@ -1,9 +1,6 @@
+use diesel::{Connection, PgConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use std::net::SocketAddrV4;
-use std::sync::Arc;
-use sea_query::{PostgresQueryBuilder, SelectStatement};
-use tokio::spawn;
-use tokio::sync::Mutex;
-use tokio_postgres::{Client, NoTls, Row};
 
 pub struct DbConfig {
     pub address: SocketAddrV4,
@@ -11,51 +8,25 @@ pub struct DbConfig {
     pub pass: &'static str,
 }
 
-pub struct Database {
-    client: Arc<Mutex<Client>>,
+pub struct Db {
+    pub connection: PgConnection,
 }
 
-impl Database {
-    pub async fn new(config: &DbConfig) -> Database {
-        let (mut client, connection) = tokio_postgres::Config::new()
-            .host(config.address.ip().to_string().as_str())
-            .port(config.address.port())
-            .user(config.user)
-            .password(config.pass)
-            .connect(NoTls)
-            .await
-            .unwrap();
+impl Db {
+    pub fn new(config: &DbConfig) -> Db {
+        let mut connection = PgConnection::establish(&format!(
+            "postgres://{}:{}@{}:{}",
+            config.user,
+            config.pass,
+            config.address.ip().to_string(),
+            config.address.port()
+        ))
+        .unwrap();
 
-        spawn(async move { connection.await.unwrap(); });
+        let migrations: EmbeddedMigrations = embed_migrations!("rsc/db_schema");
+        let applied_migrations = connection.run_pending_migrations(migrations).expect("Failed to run migrations");
+        println!("Applied migrations: {:?}", applied_migrations);
 
-        embedded_migrations::migrations::runner().run_async(&mut client).await.unwrap();
-
-        Database { client: Arc::new(Mutex::new(client)) }
+        Db { connection }
     }
-
-    pub async fn select<F, T>(&self, statement: SelectStatement, mapping: F) -> Result<Vec<T>, String>
-        where F: Fn(&Row) -> T,
-              T: Clone {
-        // let raw_query = statement.to_string(PostgresQueryBuilder); // FIXME
-        let client = self.client.lock().await;
-        let result = client.query(statement.to_string(PostgresQueryBuilder).as_str(), &[]).await;
-        match result {
-            Err(e) => Err(e.to_string()),
-            Ok(rows) => Ok(rows.iter().map(|r| mapping(&r)).collect())
-        }
-    }
-
-    pub async fn insert(&self, statement: String) -> Result<(), String> {
-        let client = self.client.lock().await;
-        match client.execute(statement.as_str(), &[]).await {
-            Ok(0) => Err(format!("Inserted no rows for {:?}", statement)),
-            Ok(_) => Ok(()),
-            Err(e) => Err(e.to_string())
-        }
-    }
-}
-
-mod embedded_migrations {
-    use refinery::embed_migrations;
-    embed_migrations!("./rsc/db_schema");
 }

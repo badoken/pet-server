@@ -9,7 +9,7 @@ async fn main() {
         db: DbConfig {
             address: SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 5432),
             user: "postgres",
-            pass: "postgres",
+            pass: "pass",
         },
     };
     let _ = app::run(config).await.unwrap();

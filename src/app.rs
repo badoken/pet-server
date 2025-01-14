@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate rocket;
+#[macro_use]
+extern crate diesel_migrations;
 
 use std::sync::Arc;
 
@@ -18,7 +20,7 @@ use rocket::response::Redirect;
 use rocket::serde::json::Json;
 use tokio::sync::Mutex;
 use crate::core::note::AppState;
-use crate::storage::db::{Database, DbConfig};
+use crate::storage::db::{Db, DbConfig};
 use crate::storage::note::NoteRepo;
 
 pub struct AppConfig {
@@ -30,7 +32,7 @@ pub async fn run(conf: AppConfig) -> Result<Rocket<Ignite>, Error> {
     configure_logging();
 
     let rocket_config = Config { port: conf.port, ..Config::default() };
-    let database = Database::new(&conf.db).await;
+    let database = Db::new(&conf.db);
 
 
     rocket::build()
