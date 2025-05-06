@@ -91,7 +91,6 @@ async fn running_service() -> () {
         let (container, pg_url) = postgres(&cli);
         pg_url_snd.send(pg_url).unwrap();
 
-        // TODO: Graceful closure
         loop {
             std::thread::sleep(Duration::from_secs(60));
         }

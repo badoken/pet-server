@@ -16,7 +16,7 @@ use log::LevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Root};
 use rocket::{Config, Error, Ignite, Rocket};
-use rocket::response::Redirect;
+use rocket::fs::FileServer;
 use rocket::serde::json::Json;
 use tokio::sync::Mutex;
 use crate::core::note::AppState;
@@ -38,13 +38,16 @@ pub async fn run(conf: AppConfig) -> Result<Rocket<Ignite>, Error> {
     rocket::build()
         .manage(AppState { note_repo: Arc::new(Mutex::new(NoteRepo::new(database).await)) })
         .mount("/", routes![health, index, note::get_by_id, note::get_all, note::post])
+        .mount("/static", FileServer::from("static"))
         .configure(&rocket_config)
         .launch()
         .await
 }
 
 #[get("/")]
-pub fn index() -> Redirect { Redirect::to(uri!(note::get_all)) }
+pub async fn index() -> rocket::fs::NamedFile {
+    rocket::fs::NamedFile::open("static/index.html").await.unwrap()
+}
 
 #[get("/health")]
 pub fn health() -> Json<()> { Json(()) }

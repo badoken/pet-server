@@ -12,6 +12,8 @@ pub struct Db {
     pub connection: PgConnection,
 }
 
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("rsc/db_schema");
+
 impl Db {
     pub fn new(config: &DbConfig) -> Db {
         let mut connection = PgConnection::establish(&format!(
@@ -23,8 +25,9 @@ impl Db {
         ))
         .unwrap();
 
-        let migrations: EmbeddedMigrations = embed_migrations!("rsc/db_schema");
-        let applied_migrations = connection.run_pending_migrations(migrations).expect("Failed to run migrations");
+        let applied_migrations = connection
+            .run_pending_migrations(MIGRATIONS)
+            .expect("Failed to run migrations");
         println!("Applied migrations: {:?}", applied_migrations);
 
         Db { connection }

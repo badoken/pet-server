@@ -5,7 +5,15 @@ use rocket::http::Status;
 use rocket::outcome::Outcome::{Error, Success};
 use rocket::serde::json::Json;
 use uuid::Uuid;
-use crate::core::note::{AppState, Note, NoteId};
+use crate::core::note::{AppState, Note, NoteContent, NoteId, NoteName};
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+pub struct NewNoteParams {
+    pub name: String,
+    pub content: String,
+}
+
 
 
 #[get("/note/<note_id>")]
@@ -24,10 +32,10 @@ pub async fn get_all(state: &State<AppState>) -> Result<Json<Vec<Note>>, String>
         .map(|notes| Json(notes))
 }
 
-#[post("/note", data = "<note>")]
-pub async fn post(note: Note, state: &State<AppState>) -> Result<Json<()>, String> {
+#[post("/note", data = "<params>")]
+pub async fn post(params: NewNoteParams, state: &State<AppState>) -> Result<Json<()>, String> {
     state.note_repo.lock().await
-        .add(note)
+        .add(params.into())
         .await
         .map(|_| Json(()))
 }
@@ -41,7 +49,7 @@ impl<'r> FromParam<'r> for NoteId {
 }
 
 #[rocket::async_trait]
-impl<'r> FromData<'r> for Note {
+impl<'r> FromData<'r> for NewNoteParams {
     type Error = String;
 
     async fn from_data(_req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
@@ -52,6 +60,16 @@ impl<'r> FromData<'r> for Note {
                 serde_json::from_str(string.as_str())
                     .map(|n| Success(n))
                     .unwrap_or_else(|e| Error((Status::UnprocessableEntity, e.to_string())))
+        }
+    }
+}
+
+impl Into<Note> for NewNoteParams {
+    fn into(self) -> Note {
+        Note {
+            id: NoteId(Uuid::new_v4()),
+            name: NoteName(self.name),
+            content: NoteContent(self.content),
         }
     }
 }
